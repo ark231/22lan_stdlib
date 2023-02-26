@@ -1,3 +1,23 @@
+#defmacro ifz dst
+    \autopushltor0 l{#{dst}}
+    ifz
+#endmacro
+
+#defmacro goto dst
+    \call clr0
+    xchg03
+    xchg13
+    xchg03
+    \autopushltor0 l{#{dst}}
+    ifz
+#endmacro
+
+#defmacro xchg dst, src
+    xchg#{dst}3
+    xchg#{src}3
+    xchg#{dst}3
+#endmacro
+
 ;\autofunc std
 ;\@nand s0_64, s0_64 -> s0_64
 startfunc
@@ -95,7 +115,6 @@ startfunc
     \call pop64s2
     xchg23
     xchg13
-    \autolabel hoge
 
     \autopushltor0 l{end}
     ifz
@@ -380,13 +399,70 @@ endfunc
 
 ;\autofunc std
 ;\@dup128s0 s0_128 -> s0_128, s0_128
-;TODO: implement this function
+startfunc
+    \call pop64s0
+    xchg03
+    xchg23
+    xchg03
+    \call push64s2
+    \call dup64s0
+    \call pop64s2
+    \call push64r2tos0
+    \call dup64s0
+    @{dup128s0}
+endfunc
 
 ;\autofunc std
 ;\@isp s0_64 -> s0_8
+startfunc
+    \call pop64s0
+    xchg13
+    xchg03
+    xchg13
+    #ifz false
+
+    xchg13
+    xchg03
+    xchg13
+    \pushl8 -63
+    xchg13
+    xchg03
+    pop8s0
+    xchg03
+    xchg13
+    lshift
+    xchg13
+    xchg23
+    xchg13
+    #ifz true
+
+    \autolabel false
+        \pushl8 0
+        #goto end
+    \autolabel true
+        \pushl8 1
+
+    \autolabel end
+    @{isp}
+endfunc
 
 ;\autofunc std
 ;\@isn s0_64 -> s0_8
+startfunc
+    \call dup64s0
+    \call pop64s0
+    xchg03
+    xchg13
+    xchg03
+    #ifz false
+        \call isp
+        \call bool_not
+        #goto end
+    \autolabel false
+        \pushl8 0
+    \autolabel end
+    @{isn}
+endfunc
 
 ;\autofunc std
 ;\@clr0 none -> r0_64
@@ -592,23 +668,10 @@ startfunc
     ;save r1_8 into s1
     push8s1
 
-    ;load 0b1111'1000 (ie. -8) to r1
-    one
-    one
-    one
-    one
-    one
-    zero
-    zero
-    zero
-    pushl8
-    xchg03
-    xchg13
-    xchg03
+    \pushl8 -8
+    #xchg 0,1
     pop8s0
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
 
     xchg23
     xchg03
@@ -658,8 +721,188 @@ endfunc
 
 ;\autofunc std
 ;\@push64s1 r1_64 -> s1_64
-;TODO: implement this function
+startfunc
+    push8s1
+    \pushl8 -8
+    pop8s0
+    #xchg 0,1
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    @{push64s1}
+endfunc
 
 ;\autofunc std
 ;\@push64s2 r2_64 -> s2_64
-;TODO: implement this function
+startfunc
+    push8s2
+    \pushl8 -8
+    pop8s0
+    #xchg 0,1
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    @{push64s2}
+endfunc
+
+;\autofunc std
+;\@ext8to64s0 s0_8 -> s0_64
+startfunc
+    pushl8
+    pushl8
+    pushl8
+    pushl8
+    pushl8
+    pushl8
+    pushl8
+    @{ext8to64s0}
+endfunc
+
+;\autofunc std
+;\@bool_not s0_8 -> s0_8
+startfunc
+    \call clr0
+    pop8s0
+    xchg03
+    xchg13
+    xchg03
+    #ifz true
+        ;false
+        \pushl8 0
+        pushl8
+        #goto end
+    \autolabel true
+        \pushl8 0
+        pushl8
+    \autolabel end
+    @{bool_not}
+endfunc
+
+;\autofunc std
+;\@bool_and s0_8, s0_8 -> s0_8
+startfunc
+    pop8s0
+    #xchg 0,1
+    push8s1
+    \call ext8to64s0
+    pop8s1
+    #xchg 0,1
+    push8s0
+    \call ext8to64s0
+    \call and
+    \call to_bool
+    @{bool_and}
+endfunc
+
+;\autofunc std
+;\@bool_or s0_8, s0_8 -> s0_8
+startfunc
+    pop8s0
+    #xchg 0,1
+    push8s1
+    \call ext8to64s0
+    pop8s1
+    #xchg 0,1
+    push8s0
+    \call ext8to64s0
+    \call or
+    \call to_bool
+    @{bool_or}
+endfunc
+
+;\autofunc std
+;\@bool_xor s0_8, s0_8 -> s0_8
+startfunc
+    pop8s0
+    #xchg 0,1
+    push8s1
+    \call ext8to64s0
+    pop8s1
+    #xchg 0,1
+    push8s0
+    \call ext8to64s0
+    \call xor
+    \call to_bool
+    @{bool_xor}
+endfunc
+
+;\autofunc std
+;\@to_bool s0_64 -> s0_8
+startfunc
+    \call pop64s0
+    #xchg 0,1
+    #ifz false
+        \pushl8 1
+        #goto end
+    \autolabel false
+        \pushl8 0
+    \autolabel end
+    @{to_bool}
+endfunc
