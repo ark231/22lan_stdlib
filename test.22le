@@ -1,0 +1,15 @@
+;\func 0b0
+;\@main none -> none
+startfunc
+    \pushl64 1
+    \pushl64 1
+    \call add
+    \pushl64 48
+    \call add
+    \call pop64s0
+    print
+    \pushl8 10
+    pop8s0
+    print
+    @{main}
+endfunc

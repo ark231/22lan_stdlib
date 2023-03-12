@@ -3,13 +3,26 @@
     ifz
 #endmacro
 
+#defmacro safeifz dst
+    #clr0
+    \autopushltor0 l{#{dst}}
+    ifz
+#endmacro
+
 #defmacro goto dst
-    \call clr0
+    #clr0
     xchg03
     xchg13
     xchg03
-    \autopushltor0 l{#{dst}}
-    ifz
+    #ifz #{dst}
+#endmacro
+
+#defmacro safegoto dst
+    #clr0
+    xchg03
+    xchg13
+    xchg03
+    #safeifz #{dst}
 #endmacro
 
 #defmacro xchg dst, src
@@ -18,15 +31,39 @@
     xchg#{dst}3
 #endmacro
 
+#defmacro clr0
+    ;save r2 to r3
+    xchg23
+    ;save r1_8 into s1
+    push8s1
+    ;load 0b100'0000 (ie. 64) to r1
+    \pushl8 64
+    #xchg 0,1
+    pop8s0
+    #xchg 0,1
+
+    lshift
+    #xchg 0,2
+
+    ;restore r1_8 from s1
+    pop8s1
+    ;restore r2 from r3
+    xchg23
+#endmacro
+
+#defmacro safecall dst
+    #clr0
+    \call #{dst}
+#endmacro
+
 ;\autofunc std
 ;\@nand s0_64, s0_64 -> s0_64
 startfunc
-    \call pop64s0
-    xchg03
-    xchg13
-    \call pop64s0
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall pop64s0
     nand
-    \call push64r2tos0
+    #safecall push64r2tos0
     @{nand}
 endfunc
 
@@ -34,28 +71,25 @@ endfunc
 ;\@not s0_64 -> s0_64
 ;\r0: invalidated, r1: invalidated, r2: invalidated
 startfunc
-    \call dup64s0
-    \call pop64s0
-    xchg03
-    xchg13
-    xchg03
-    \call pop64s0
+    #safecall dup64s0
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall pop64s0
     ;`a nand a` is equivalent to `not a`
     nand
-    \call push64r2tos0
+    #safecall push64r2tos0
     @{not}
 endfunc
 
 ;\autofunc std
 ;\@and s0_64, s0_64 -> s0_64
 startfunc
-    \call pop64s0
-    xchg03
-    xchg13
-    \call pop64s0
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall pop64s0
     nand
-    \call push64r2tos0
-    \call not
+    #safecall push64r2tos0
+    #safecall not
     @{and}
 endfunc
 
@@ -63,18 +97,16 @@ endfunc
 ;\@or s0_64, s0_64 -> s0_64
 startfunc
     ;`not ((not a) and (not b))` is equivalent to `a or b`
-    \call not
-    \call pop64s0
-    xchg03
-    xchg13
-    \call push64s1
-    \call not
-    \call pop64s1
-    xchg13
-    xchg23
-    \call push64r2tos0
-    \call and
-    \call not
+    #safecall not
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall push64s1
+    #safecall not
+    #safecall pop64s1
+    #xchg 1,2
+    #safecall push64r2tos0
+    #safecall and
+    #safecall not
     @{or}
 endfunc
 
@@ -82,17 +114,16 @@ endfunc
 ;\@xor s0_64, s0_64 -> s0_64
 startfunc
     ;`(a or b) and (a nand b)` is equivalent to `a xor b`
-    \call dup128s0
-    \call or
-    \call pop64s0
-    xchg03
-    xchg13
-    \call push64s1
-    \call nand
-    \call pop64s1
-    xchg13
-    xchg03
-    \call and
+    #safecall dup128s0
+    #safecall or
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall push64s1
+    #safecall nand
+    #safecall pop64s1
+    #xchg 1,2
+    #safecall push64r2tos0
+    #safecall and
     @{xor}
 endfunc
 
@@ -100,61 +131,48 @@ endfunc
 ;\@add s0_64, s0_64 -> s0_64
 startfunc
     ;二番目の引数をr1に格納
-    \call pop64s0
-    xchg03
-    xchg13
-    \call push64s1
-    \call pop64s0
-    xchg03
-    xchg23
-    \call push64s2
-    \call pop64s1
-    xchg13
-    xchg23
-    \call push64r2tos0
-    \call pop64s2
-    xchg23
-    xchg13
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall push64s1
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    #safecall pop64s1
+    #xchg 1,2
+    #safecall push64r2tos0
+    #safecall pop64s2
+    #xchg 1,2
 
-    \autopushltor0 l{end}
-    ifz
+    #safeifz end
 
     ;r1にある2番めの引数をスタックの二番目に戻す
-    \call push64s1
-    \call pop64s0
-    xchg03
-    xchg23
-    \call push64s2
-    \call pop64s1
-    xchg13
-    xchg23
-    \call push64r2tos0
-    \call pop64s2
-    \call push64r2tos0
+    #safecall push64s1
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    #safecall pop64s1
+    #xchg 1,2
+    #safecall push64r2tos0
+    #safecall pop64s2
+    #safecall push64r2tos0
     
     ;add((arg0 xor arg1) , (arg0 and arg1) << 1)
-    \call dup128s0
-    \call xor
-    \call pop64s0
-    xchg03
-    xchg23
-    \call push64s2
-    \call and
-    \call pop64s0
-    xchg03
-    xchg13
-    xchg03
-    one
-    pushl8
+    #safecall dup128s0
+    #safecall xor
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    #safecall and
+    #safecall pop64s0
+    #xchg 0,1
+    \pushl8 1
     pop8s0
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     lshift
-    \call push64r2tos0
-    \call pop64s2
-    \call push64r2tos0
-    \call add
+    #safecall push64r2tos0
+    #safecall pop64s2
+    #safecall push64r2tos0
+    #safecall add
 
     \autolabel end
     @{add}
@@ -164,28 +182,26 @@ endfunc
 ;\@sub s0_64, s0_64 -> s0_64
 startfunc
     ;一番目の引数を退避
-    \call pop64s0
-    xchg03
-    xchg23
-    \call push64s2
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
     
     ;二番目の引数を2の補数に変換する
-    \call not
-    \call clr0
+    #safecall not
+    #clr0
     one
     pushl8
     pop8s0
-    xchg03
-    xchg23
-    \call push64r2tos0
-    \call add
+    #xchg 0,2
+    #safecall push64r2tos0
+    #safecall add
 
     ;一番目の引数を戻す
-    \call pop64s2
-    \call push64r2tos0
+    #safecall pop64s2
+    #safecall push64r2tos0
 
     ;add(arg0 , add(1 , not arg1))
-    \call add
+    #safecall add
     @{sub}
 endfunc
 
@@ -193,40 +209,35 @@ endfunc
 ;\@dup64s0 s0_64 -> s0_64, s0_64
 startfunc
 
+    #clr0
     ;load 0b1000'0000 to r2
     \pushl8 0b1000_0000
     pop8s0
-    xchg03
-    xchg23
-    xchg03
+    #xchg 0,2
 
     ;load 0b1111'1111 (ie. -1) to r1
     \pushl8 -1
     pop8s0
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
 
-    ;save -1 into s1 (ループ処理部との整合性のため)
+    ;save r1_8 into s1 (ループ処理部との整合性のため)
     push8s1
+    ;save r2_8 into s2 (ループ処理部との整合性のため)
+    push8s2
 
-    ;label 0
-    deflabel
+    \autolabel loop_start
 
     ;restore -1 from s1
     pop8s1
 
+    ;restore counter from s2
+    pop8s2
+
     ;duplicate top byte of s0 into s1 and s2
     pop8s0
-    ;xchg01
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s1
-    ;xchg12
-    xchg13
-    xchg23
-    xchg13
+    #xchg 1,2
     push8s2
     ;r2->r0,r0->r1,r1->r2
     xchg23
@@ -234,164 +245,98 @@ startfunc
     xchg13
     xchg23
 
-    ;rshift counter 1bit and if it is zero, jump to label 1
+    ;rshift counter 1bit and if it is zero, jump to loop_end
     ;now, r0 is free, r1 is -1, r2 is counter
-    ;exchange r0 and r2
-    xchg03
-    xchg23
-    xchg03
+    #xchg 0,2
     ;now, r0 is counter, r1 is -1, r2 is free
 
     lshift
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    ;now, r0 is free, r1 is -1, r2 is counter
+    #xchg 1,2
     ;now, r0 is free, r1 is counter, r2 is -1
 
-    one
-    pushl8
-    pop8s0
-    ifz
+    #safeifz loop_end
 
-    xchg13
-    xchg23
-    xchg13
+    #xchg 1,2
     ;now, r0 is free, r1 is -1, r2 is counter
 
     ;save r1_8 into s1
     push8s1
 
-    ;goto label 1
-    pushl8
-    pop8s0
-    ;xchg12
-    xchg13
-    xchg23
-    xchg13
-    pushl8
-    pop8s0
-    ifz
+    ;save r2_8 into s2
+    push8s2
 
-    ;label 1
-    one
-    deflabel
+    #safegoto loop_start
+
+    \autolabel loop_end
     ;now, r0 is free, r1 is 0, r2 is -1
     ;now, all register becomes free
 
-    ;move s1_64 to s0
+    ;s1からs0に移す
+    ;ひっくり返っているので、pop/push64系は使えない。
     pop8s1
-    xchg03
-    xchg13
-    xchg03
-    push8s0
-
-    pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
     pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
     pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
     pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
     pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
     pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
     pop8s1
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     push8s0
 
-    ;move s2_64 to s0
-    pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    pop8s1
+    #xchg 0,1
     push8s0
 
+    ;s2からs0に移す
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
     push8s0
 
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
     push8s0
 
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
     push8s0
 
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
     push8s0
 
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
     push8s0
 
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
     push8s0
 
     pop8s2
-    ;r2->r0,r0->r1,r1->r2
-    xchg23
-    xchg03
-    xchg13
-    xchg23
+    #xchg 0,2
+    push8s0
+
+    pop8s2
+    #xchg 0,2
     push8s0
 
     @{dup64s0}
@@ -400,26 +345,35 @@ endfunc
 ;\autofunc std
 ;\@dup128s0 s0_128 -> s0_128, s0_128
 startfunc
-    \call pop64s0
-    xchg03
-    xchg23
-    xchg03
-    \call push64s2
-    \call dup64s0
-    \call pop64s2
-    \call push64r2tos0
-    \call dup64s0
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    #safecall dup64s0
+    #safecall pop64s0
+    #xchg 0,1
+    #safecall push64s1
+    #safecall pop64s2
+    #safecall push64r2tos0
+    #safecall dup64s0
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    #safecall pop64s1
+    #xchg 1,2
+    #safecall push64r2tos0
+    #safecall pop64s2
+    #safecall push64r2tos0
     @{dup128s0}
 endfunc
 
 ;\autofunc std
 ;\@isp s0_64 -> s0_8
 startfunc
-    \call pop64s0
+    #safecall pop64s0
     xchg13
     xchg03
     xchg13
-    #ifz false
+    #safeifz false
 
     xchg13
     xchg03
@@ -434,11 +388,11 @@ startfunc
     xchg13
     xchg23
     xchg13
-    #ifz true
+    #safeifz true
 
     \autolabel false
         \pushl8 0
-        #goto end
+        #safegoto end
     \autolabel true
         \pushl8 1
 
@@ -449,15 +403,15 @@ endfunc
 ;\autofunc std
 ;\@isn s0_64 -> s0_8
 startfunc
-    \call dup64s0
-    \call pop64s0
+    #safecall dup64s0
+    #safecall pop64s0
     xchg03
     xchg13
     xchg03
-    #ifz false
-        \call isp
-        \call bool_not
-        #goto end
+    #safeifz false
+        #safecall isp
+        #safecall bool_not
+        #safegoto end
     \autolabel false
         \pushl8 0
     \autolabel end
@@ -467,26 +421,7 @@ endfunc
 ;\autofunc std
 ;\@clr0 none -> r0_64
 startfunc
-    ;save r1_8 into s1
-    push8s1
-    ;load 0b100'0000 (ie. 64) to r1
-    one
-    zero
-    zero
-    zero
-    pushl8
-    xchg03
-    xchg13
-    xchg03
-    pop8s0
-    xchg03
-    xchg13
-    xchg03
-
-    lshift
-    xchg23
-    xchg03
-
+    #clr0
     @{clr0}
 endfunc
 
@@ -498,48 +433,37 @@ startfunc
     push8s1
 
     \pushl8 8
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
     pop8s0
-    xchg03
-    xchg13
-    xchg03
+    #xchg 0,1
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     pop8s0
 
@@ -552,62 +476,59 @@ endfunc
 ;\autofunc std
 ;\@pop64s1 s1_64 -> r1_64
 startfunc
-    ;load 8 to r1_8
     \pushl8 8
     pop8s0
-    xchg03
-    xchg13
+    ;now, r0 is 8, r1 is free, r2 is free
 
-    xchg13
     pop8s1
-    xchg13
-    xchg03
+    ;now, r0 is 8, r1 is result, r2 is free
+    #xchg 0,1
+    ;now, r0 is result, r1 is 8, r2 is free
     lshift
+    ;now, r0 is free, r1 is 8, r2 is result
+    #xchg 1,2
+    ;now, r0 is free, r1 is result, r2 is 8 
 
-    xchg23
-    xchg13
     pop8s1
-    xchg13
-    xchg03
+    ;now, r0 is free, r1 is result, r2 is 8 
+    #xchg 0,1
+    ;now, r0 is result, r1 is free, r2 is  8
+    #xchg 1,2
+    ;now, r0 is result, r1 is 8, r2 is free
     lshift
+    ;now, r0 is free, r1 is 8, r2 is result
+    #xchg 1,2
 
-    xchg23
-    xchg13
     pop8s1
-    xchg13
-    xchg03
-    lshift
+    #xchg 0,1
+    #xchg 1,2
+    lshift 
+    #xchg 1,2
 
-    xchg23
-    xchg13
     pop8s1
-    xchg13
-    xchg03
-    lshift
+    #xchg 0,1
+    #xchg 1,2
+    lshift 
+    #xchg 1,2
 
-    xchg23
-    xchg13
     pop8s1
-    xchg13
-    xchg03
-    lshift
+    #xchg 0,1
+    #xchg 1,2
+    lshift 
+    #xchg 1,2
 
-    xchg23
-    xchg13
     pop8s1
-    xchg13
-    xchg03
-    lshift
+    #xchg 0,1
+    #xchg 1,2
+    lshift 
+    #xchg 1,2
 
-    xchg23
-    xchg13
     pop8s1
-    xchg13
-    xchg03
-    lshift
+    #xchg 0,1
+    #xchg 1,2
+    lshift 
+    #xchg 1,2
 
-    xchg23
-    xchg13
     pop8s1
     @{pop64s1}
 endfunc
@@ -618,42 +539,34 @@ startfunc
     ;load 8 to r1_8
     \pushl8 8
     pop8s0
-    xchg03
-    xchg13
+    #xchg 0,1
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
-    xchg23
-    xchg03
+    #xchg 0,2
     lshift
 
     pop8s2
@@ -673,43 +586,35 @@ startfunc
     pop8s0
     #xchg 0,1
 
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
     lshift
-    xchg23
-    xchg03
+    #xchg 0,2
 
     push8s0
 
@@ -828,16 +733,16 @@ endfunc
 ;\autofunc std
 ;\@bool_not s0_8 -> s0_8
 startfunc
-    \call clr0
+    #clr0
     pop8s0
     xchg03
     xchg13
     xchg03
-    #ifz true
+    #safeifz true
         ;false
         \pushl8 0
         pushl8
-        #goto end
+        #safegoto end
     \autolabel true
         \pushl8 0
         pushl8
@@ -851,13 +756,13 @@ startfunc
     pop8s0
     #xchg 0,1
     push8s1
-    \call ext8to64s0
+    #safecall ext8to64s0
     pop8s1
     #xchg 0,1
     push8s0
-    \call ext8to64s0
-    \call and
-    \call to_bool
+    #safecall ext8to64s0
+    #safecall and
+    #safecall to_bool
     @{bool_and}
 endfunc
 
@@ -867,13 +772,13 @@ startfunc
     pop8s0
     #xchg 0,1
     push8s1
-    \call ext8to64s0
+    #safecall ext8to64s0
     pop8s1
     #xchg 0,1
     push8s0
-    \call ext8to64s0
-    \call or
-    \call to_bool
+    #safecall ext8to64s0
+    #safecall or
+    #safecall to_bool
     @{bool_or}
 endfunc
 
@@ -883,24 +788,24 @@ startfunc
     pop8s0
     #xchg 0,1
     push8s1
-    \call ext8to64s0
+    #safecall ext8to64s0
     pop8s1
     #xchg 0,1
     push8s0
-    \call ext8to64s0
-    \call xor
-    \call to_bool
+    #safecall ext8to64s0
+    #safecall xor
+    #safecall to_bool
     @{bool_xor}
 endfunc
 
 ;\autofunc std
 ;\@to_bool s0_64 -> s0_8
 startfunc
-    \call pop64s0
+    #safecall pop64s0
     #xchg 0,1
-    #ifz false
+    #safeifz false
         \pushl8 1
-        #goto end
+        #safegoto end
     \autolabel false
         \pushl8 0
     \autolabel end
