@@ -1,4 +1,5 @@
 *
+!Makefile
 !*/
 !*.*
 *.22l
@@ -7,3 +8,4 @@
 *.cpp
 *.nyu
 *.txt
+*.22libe
