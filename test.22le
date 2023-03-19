@@ -1,3 +1,5 @@
+#stack 0,cstr,Hello,world!\nこんにちは、世界！\n
+
 ;\func 0b0
 ;\@main none -> none
 startfunc
@@ -11,5 +13,14 @@ startfunc
     \pushl8 10
     pop8s0
     print
+
+    \autolabel loop_start
+    pop8s0
+    #xchg 0,1
+    #ifz end
+    #xchg 0,1
+    print
+    #goto loop_start
+    \autolabel end
     @{main}
 endfunc
