@@ -1,0 +1,62 @@
+#defmacro loop_content_1
+    \pushl8 0
+    pop8s0
+    #xchg 0,2
+    push8s2
+#endmacro
+
+#defmacro loop_content_4
+    #loop_content_1
+    #loop_content_1
+    #loop_content_1
+    #loop_content_1
+#endmacro
+
+#defmacro loop_content_16
+    #loop_content_4
+    #loop_content_4
+    #loop_content_4
+    #loop_content_4
+#endmacro
+
+#defmacro loop_content_64
+    #loop_content_16
+    #loop_content_16
+    #loop_content_16
+    #loop_content_16
+#endmacro
+
+#defmacro loop_content_256
+    #loop_content_64
+    #loop_content_64
+    #loop_content_64
+    #loop_content_64
+#endmacro
+
+;\func 0b0
+;\@main none -> none
+startfunc
+    \pushl8 1
+    pop8s0
+    #xchg 0,1
+    \pushl8 16
+    pop8s0
+    #xchg 0,1
+    lshift
+    #safecall push64r2tos0
+
+    \autolabel loop_start
+    #safecall pop64s0
+    #xchg 0,1
+    #ifz loop_end
+        #xchg 1,2
+        #safecall push64r2tos0
+
+        #loop_content_256
+
+        \pushl64 -1
+        #safecall add
+        #safegoto loop_start
+    \autolabel loop_end
+    @{main}
+endfunc
