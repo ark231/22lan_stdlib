@@ -1,4 +1,5 @@
-#stack 0,cstr,Hello,world!\nこんにちは、世界！\n
+#stack 0,cstr,Hello,world!\nこんにちは、世界！\n0000000000\n
+#stack 1,intarray,64,big,0
 
 ;\func 0b0
 ;\@main none -> none
@@ -14,10 +15,21 @@ startfunc
     pop8s0
     print
 
+    #autopushl64 1
+    #autopushl64 1
+    #safecall add
+    \pushl64 48
+    #safecall add
+    #safecall pop64s0
+    print
+    \pushl8 10
+    pop8s0
+    print
+
     \autolabel loop_start
     pop8s0
     #xchg 0,1
-    #ifz end
+    #safeifz end
     #xchg 0,1
     print
     #goto loop_start
