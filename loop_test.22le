@@ -43,20 +43,20 @@ startfunc
     pop8s0
     #xchg 0,1
     lshift
-    #safecall push64r2tos0
+    \call push64r2tos0
 
     \autolabel loop_start
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,1
     #ifz loop_end
         #xchg 1,2
-        #safecall push64r2tos0
+        \call push64r2tos0
 
         #loop_content_256
 
         \pushl64 -1
-        #safecall add
-        #safegoto loop_start
+        \call add
+        #goto loop_start
     \autolabel loop_end
     @{main}
 endfunc

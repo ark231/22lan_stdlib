@@ -3,19 +3,7 @@
     ifz
 #endmacro
 
-#defmacro safeifz dst
-    #ifz #{dst}
-#endmacro
-
 #defmacro goto dst
-    #clr0
-    xchg03
-    xchg13
-    xchg03
-    #ifz #{dst}
-#endmacro
-
-#defmacro safegoto dst
     #clr0
     xchg03
     xchg13
@@ -49,18 +37,14 @@
     xchg23
 #endmacro
 
-#defmacro safecall dst
-    \call #{dst}
-#endmacro
-
 ;\autofunc std
 ;\@nand s0_64, s0_64 -> s0_64
 startfunc
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,1
-    #safecall pop64s0
+    \call pop64s0
     nand
-    #safecall push64r2tos0
+    \call push64r2tos0
     @{nand}
 endfunc
 
@@ -68,25 +52,25 @@ endfunc
 ;\@not s0_64 -> s0_64
 ;\r0: invalidated, r1: invalidated, r2: invalidated
 startfunc
-    #safecall dup64s0
-    #safecall pop64s0
+    \call dup64s0
+    \call pop64s0
     #xchg 0,1
-    #safecall pop64s0
+    \call pop64s0
     ;`a nand a` is equivalent to `not a`
     nand
-    #safecall push64r2tos0
+    \call push64r2tos0
     @{not}
 endfunc
 
 ;\autofunc std
 ;\@and s0_64, s0_64 -> s0_64
 startfunc
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,1
-    #safecall pop64s0
+    \call pop64s0
     nand
-    #safecall push64r2tos0
-    #safecall not
+    \call push64r2tos0
+    \call not
     @{and}
 endfunc
 
@@ -94,16 +78,16 @@ endfunc
 ;\@or s0_64, s0_64 -> s0_64
 startfunc
     ;`not ((not a) and (not b))` is equivalent to `a or b`
-    #safecall not
-    #safecall pop64s0
+    \call not
+    \call pop64s0
     #xchg 0,1
-    #safecall push64s1
-    #safecall not
-    #safecall pop64s1
+    \call push64s1
+    \call not
+    \call pop64s1
     #xchg 1,2
-    #safecall push64r2tos0
-    #safecall and
-    #safecall not
+    \call push64r2tos0
+    \call and
+    \call not
     @{or}
 endfunc
 
@@ -111,65 +95,46 @@ endfunc
 ;\@xor s0_64, s0_64 -> s0_64
 startfunc
     ;`(a or b) and (a nand b)` is equivalent to `a xor b`
-    #safecall dup128s0
-    #safecall or
-    #safecall pop64s0
+    \call dup128s0
+    \call or
+    \call pop64s0
     #xchg 0,1
-    #safecall push64s1
-    #safecall nand
-    #safecall pop64s1
+    \call push64s1
+    \call nand
+    \call pop64s1
     #xchg 1,2
-    #safecall push64r2tos0
-    #safecall and
+    \call push64r2tos0
+    \call and
     @{xor}
 endfunc
 
 ;\autofunc std
 ;\@add s0_64, s0_64 -> s0_64
 startfunc
-    ;二番目の引数をr1に格納
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,1
-    #safecall push64s1
-    #safecall pop64s0
-    #xchg 0,2
-    #safecall push64s2
-    #safecall pop64s1
+    #ifz end
     #xchg 1,2
-    #safecall push64r2tos0
-    #safecall pop64s2
-    #xchg 1,2
-
-    #safeifz end
-
-    ;r1にある2番めの引数をスタックの二番目に戻す
-    #safecall push64s1
-    #safecall pop64s0
-    #xchg 0,2
-    #safecall push64s2
-    #safecall pop64s1
-    #xchg 1,2
-    #safecall push64r2tos0
-    #safecall pop64s2
-    #safecall push64r2tos0
+    \call push64r2tos0
     
-    ;add((arg0 xor arg1) , (arg0 and arg1) << 1)
-    #safecall dup128s0
-    #safecall xor
-    #safecall pop64s0
-    #xchg 0,2
-    #safecall push64s2
-    #safecall and
-    #safecall pop64s0
+    ;add((arg0 and arg1) << 1 , (arg0 xor arg1))
+    \call dup128s0
+
+    \call and
+    \call pop64s0
     #xchg 0,1
     \pushl8 1
     pop8s0
     #xchg 0,1
     lshift
-    #safecall push64r2tos0
-    #safecall pop64s2
-    #safecall push64r2tos0
-    #safecall add
+    \call push64s2
+
+    \call xor
+
+    \call pop64s2
+    \call push64r2tos0
+
+    \call add
 
     \autolabel end
     @{add}
@@ -179,30 +144,30 @@ endfunc
 ;\@sub s0_64, s0_64 -> s0_64
 startfunc
     ;一番目の引数を退避
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,2
-    #safecall push64s2
+    \call push64s2
     
     ;二番目の引数を2の補数に変換する
-    #safecall not
+    \call not
     #clr0
     one
     pushl8
     pop8s0
     #xchg 0,2
-    #safecall push64r2tos0
-    #safecall add
+    \call push64r2tos0
+    \call add
 
     ;一番目の引数を戻す
-    #safecall pop64s2
-    #safecall push64r2tos0
+    \call pop64s2
+    \call push64r2tos0
 
     ;add(arg0 , add(1 , not arg1))
-    #safecall add
+    \call add
     @{sub}
 endfunc
 
-#defmacro _dup64s0_loop_content
+#defmacro _dup64s0_duplicate_loop_content
     ;duplicate top byte of s0 into s1 and s2
     pop8s0
     #xchg 1,0
@@ -211,85 +176,44 @@ endfunc
     push8s2
 #endmacro
 
+#defmacro _dup64s0_restore_loop_content src
+    pop8s#{src}
+    #xchg 0,#{src}
+    push8s0
+#endmacro
+
+#defmacro repeat_macro_2 macro,...
+    ##{macro} #{__VA_ARGS__}
+    ##{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_4 macro,...
+    #repeat_macro_2 #{macro} #{__VA_ARGS__}
+    #repeat_macro_2 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_8 macro,...
+    #repeat_macro_4 #{macro} #{__VA_ARGS__}
+    #repeat_macro_4 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_16 macro,...
+    #repeat_macro_8 #{macro} #{__VA_ARGS__}
+    #repeat_macro_8 #{macro} #{__VA_ARGS__}
+#endmacro
+
 ;\autofunc std
 ;\@dup64s0 s0_64 -> s0_64, s0_64
 startfunc
 
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
-    #_dup64s0_loop_content
+    #repeat_macro_8 _dup64s0_duplicate_loop_content
 
     ;s1からs0に移す
     ;ひっくり返っているので、pop/push64系は使えない。
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
-
-    pop8s1
-    #xchg 0,1
-    push8s0
+    #repeat_macro_8 _dup64s0_restore_loop_content 1
 
     ;s2からs0に移す
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
-
-    pop8s2
-    #xchg 0,2
-    push8s0
+    #repeat_macro_8 _dup64s0_restore_loop_content 2
 
     @{dup64s0}
 endfunc
@@ -297,54 +221,35 @@ endfunc
 ;\autofunc std
 ;\@dup128s0 s0_128 -> s0_128, s0_128
 startfunc
-    #safecall pop64s0
-    #xchg 0,2
-    #safecall push64s2
-    #safecall dup64s0
-    #safecall pop64s0
-    #xchg 0,1
-    #safecall push64s1
-    #safecall pop64s2
-    #safecall push64r2tos0
-    #safecall dup64s0
-    #safecall pop64s0
-    #xchg 0,2
-    #safecall push64s2
-    #safecall pop64s1
-    #xchg 1,2
-    #safecall push64r2tos0
-    #safecall pop64s2
-    #safecall push64r2tos0
+
+    #repeat_macro_16 _dup64s0_duplicate_loop_content
+
+    ;s1からs0に移す
+    ;ひっくり返っているので、pop/push64系は使えない。
+    #repeat_macro_16 _dup64s0_restore_loop_content 1
+
+    ;s2からs0に移す
+    #repeat_macro_16 _dup64s0_restore_loop_content 2
     @{dup128s0}
 endfunc
 
 ;\autofunc std
 ;\@isp s0_64 -> s0_8
 startfunc
-    #safecall pop64s0
-    xchg13
-    xchg03
-    xchg13
-    #safeifz false
+    \call pop64s0
+    #xchg 0,1
+    #ifz false
 
-    xchg13
-    xchg03
-    xchg13
     \pushl8 -63
-    xchg13
-    xchg03
     pop8s0
-    xchg03
-    xchg13
+    #xchg 0,1
     lshift
-    xchg13
-    xchg23
-    xchg13
-    #safeifz true
+    #xchg 1,2
+    #ifz true
 
     \autolabel false
         \pushl8 0
-        #safegoto end
+        #goto end
     \autolabel true
         \pushl8 1
 
@@ -355,15 +260,13 @@ endfunc
 ;\autofunc std
 ;\@isn s0_64 -> s0_8
 startfunc
-    #safecall dup64s0
-    #safecall pop64s0
-    xchg03
-    xchg13
-    xchg03
-    #safeifz false
-        #safecall isp
-        #safecall bool_not
-        #safegoto end
+    \call dup64s0
+    \call pop64s0
+    #xchg 0,1
+    #ifz false
+        \call isp
+        \call bool_not
+        #goto end
     \autolabel false
         \pushl8 0
     \autolabel end
@@ -690,11 +593,11 @@ startfunc
     xchg03
     xchg13
     xchg03
-    #safeifz true
+    #ifz true
         ;false
         \pushl8 0
         pushl8
-        #safegoto end
+        #goto end
     \autolabel true
         \pushl8 0
         pushl8
@@ -708,13 +611,13 @@ startfunc
     pop8s0
     #xchg 0,1
     push8s1
-    #safecall ext8to64s0
+    \call ext8to64s0
     pop8s1
     #xchg 0,1
     push8s0
-    #safecall ext8to64s0
-    #safecall and
-    #safecall to_bool
+    \call ext8to64s0
+    \call and
+    \call to_bool
     @{bool_and}
 endfunc
 
@@ -724,13 +627,13 @@ startfunc
     pop8s0
     #xchg 0,1
     push8s1
-    #safecall ext8to64s0
+    \call ext8to64s0
     pop8s1
     #xchg 0,1
     push8s0
-    #safecall ext8to64s0
-    #safecall or
-    #safecall to_bool
+    \call ext8to64s0
+    \call or
+    \call to_bool
     @{bool_or}
 endfunc
 
@@ -740,24 +643,24 @@ startfunc
     pop8s0
     #xchg 0,1
     push8s1
-    #safecall ext8to64s0
+    \call ext8to64s0
     pop8s1
     #xchg 0,1
     push8s0
-    #safecall ext8to64s0
-    #safecall xor
-    #safecall to_bool
+    \call ext8to64s0
+    \call xor
+    \call to_bool
     @{bool_xor}
 endfunc
 
 ;\autofunc std
 ;\@to_bool s0_64 -> s0_8
 startfunc
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,1
-    #safeifz false
+    #ifz false
         \pushl8 1
-        #safegoto end
+        #goto end
     \autolabel false
         \pushl8 0
     \autolabel end

@@ -5,10 +5,10 @@
 startfunc
     \pushl64 1
     \pushl64 1
-    #safecall add
+    \call add
     \pushl64 48
-    #safecall add
-    #safecall pop64s0
+    \call add
+    \call pop64s0
     print
     \pushl8 10
     pop8s0
