@@ -14,6 +14,17 @@ startfunc
     pop8s0
     print
 
+    #autopushl64 1
+    #autopushl64 1
+    \call add
+    \pushl64 48
+    \call add
+    \call pop64s0
+    print
+    \pushl8 10
+    pop8s0
+    print
+
     \autolabel loop_start
     pop8s0
     #xchg 0,1

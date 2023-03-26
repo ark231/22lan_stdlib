@@ -37,6 +37,55 @@
     xchg23
 #endmacro
 
+#defmacro repeat_macro_2 macro,...
+    ##{macro} #{__VA_ARGS__}
+    ##{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_4 macro,...
+    #repeat_macro_2 #{macro} #{__VA_ARGS__}
+    #repeat_macro_2 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_8 macro,...
+    #repeat_macro_4 #{macro} #{__VA_ARGS__}
+    #repeat_macro_4 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_16 macro,...
+    #repeat_macro_8 #{macro} #{__VA_ARGS__}
+    #repeat_macro_8 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_32 macro,...
+    #repeat_macro_16 #{macro} #{__VA_ARGS__}
+    #repeat_macro_16 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_64  macro,...
+    #repeat_macro_32 #{macro} #{__VA_ARGS__}
+    #repeat_macro_32 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_128 macro,...
+    #repeat_macro_64 #{macro} #{__VA_ARGS__}
+    #repeat_macro_64 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro repeat_macro_256 macro,...
+    #repeat_macro_128 #{macro} #{__VA_ARGS__}
+    #repeat_macro_128 #{macro} #{__VA_ARGS__}
+#endmacro
+
+#defmacro _pushl8
+    pushl8
+#endmacro
+
+#defmacro autopushl64 arg
+    \autoliteral #{arg}
+    #repeat_macro_8 _pushl8
+#endmacro
+
 ;\autofunc std
 ;\@nand s0_64, s0_64 -> s0_64
 startfunc
@@ -180,26 +229,6 @@ endfunc
     pop8s#{src}
     #xchg 0,#{src}
     push8s0
-#endmacro
-
-#defmacro repeat_macro_2 macro,...
-    ##{macro} #{__VA_ARGS__}
-    ##{macro} #{__VA_ARGS__}
-#endmacro
-
-#defmacro repeat_macro_4 macro,...
-    #repeat_macro_2 #{macro} #{__VA_ARGS__}
-    #repeat_macro_2 #{macro} #{__VA_ARGS__}
-#endmacro
-
-#defmacro repeat_macro_8 macro,...
-    #repeat_macro_4 #{macro} #{__VA_ARGS__}
-    #repeat_macro_4 #{macro} #{__VA_ARGS__}
-#endmacro
-
-#defmacro repeat_macro_16 macro,...
-    #repeat_macro_8 #{macro} #{__VA_ARGS__}
-    #repeat_macro_8 #{macro} #{__VA_ARGS__}
 #endmacro
 
 ;\autofunc std
@@ -665,4 +694,35 @@ startfunc
         \pushl8 0
     \autolabel end
     @{to_bool}
+endfunc
+;\autofunc std
+;\@to_positive s0_64 -> s0_64
+startfunc
+    \call dup64s0
+    \call isn
+    #clr0
+    pop8s0
+    #xchg 0,1
+    #ifz end
+        \call not
+        \pushl64 1
+        \call add
+    \autolabel end
+    @{to_positive}
+endfunc
+
+;\autofunc std
+;\@to_negative s0_64 -> s0_64
+startfunc
+    \call dup64s0
+    \call isp
+    #clr0
+    pop8s0
+    #xchg 0,1
+    #ifz end
+        \call not
+        \pushl64 1
+        \call add
+    \autolabel end
+    @{to_negative}
 endfunc
